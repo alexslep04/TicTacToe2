@@ -1,7 +1,7 @@
 class Config:
     # Screen dimensions
-    SCREEN_WIDTH = 600
-    SCREEN_HEIGHT = 600
+    SCREEN_WIDTH = 1600
+    SCREEN_HEIGHT = 1600
 
     # Colors
     BACKGROUND_COLOR = (30, 30, 30)  # Dark gray
