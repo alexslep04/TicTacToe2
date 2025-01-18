@@ -16,4 +16,4 @@ class Config:
     CELL_SIZE = SCREEN_WIDTH // GRID_SIZE
 
     # Frames per second
-    FPS = 30
+    # FPS = 30

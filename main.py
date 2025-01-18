@@ -10,14 +10,17 @@ class Main:
         """Initialize the game."""
         # Initialize Pygame
         pygame.init()
-        self.screen_width = 600
-        self.screen_height = 600
+        self.cell_size = 200  # Size of each grid cell
+        self.grid_size = 3  # Grid size (e.g., 3x3)
+        self.side_padding = self.cell_size  # Space on each side for player pieces
+        self.screen_width = self.cell_size * self.grid_size + 2 * self.side_padding
+        self.screen_height = self.cell_size * self.grid_size
         self.screen = pygame.display.set_mode((self.screen_width, self.screen_height))
         pygame.display.set_caption("Tic-Tac-Toe with Pieces")
 
         # Initialize game components
         self.board = Board()
-        self.renderer = Renderer(self.screen)
+        self.renderer = Renderer(self.screen, cell_size=self.cell_size)
         self.events = Events()
 
         # Create players
