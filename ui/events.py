@@ -10,8 +10,8 @@ class Events:
         """
         Capture user input and return the event as a dictionary.
         Event types include:
-          - 'select_piece': When a piece is selected.
-          - 'place_piece': When a move is attempted on the board.
+        - 'select_piece': When a piece is selected.
+        - 'place_piece': When a move is attempted on the board.
         """
         for event in pygame.event.get():
             # Quit Event
@@ -29,16 +29,29 @@ class Events:
             if event.type == pygame.MOUSEBUTTONDOWN:
                 if event.button == 1:  # Left mouse button
                     x, y = pygame.mouse.get_pos()
-                    return {"type": "place_piece", "coordinates": self._get_cell_coordinates(x, y)}
+                    coordinates = self._get_cell_coordinates(x, y)
+                    if coordinates is not None:
+                        return {"type": "place_piece", "coordinates": coordinates}
+                    else:
+                        print("Click outside the grid.")  # Debugging message
 
         # No actionable event
         return None
+
 
     def _get_cell_coordinates(self, mouse_x, mouse_y):
         """
         Convert mouse click position into grid coordinates.
         """
-        cell_size = 200  # Assuming a 3x3 grid with each cell 200x200 pixels
+        board_offset_x = 200  # Matches Renderer.board_offset_x
+        cell_size = 200       # Assuming each grid cell is 200x200 pixels
+
+        # Adjust for the board's horizontal offset
+        col = (mouse_x - board_offset_x) // cell_size
         row = mouse_y // cell_size
-        col = mouse_x // cell_size
+
+        # Ensure the coordinates are within bounds
+        if col < 0 or row < 0 or col >= 3 or row >= 3:  # Assuming a 3x3 grid
+            return None  # Return None for invalid clicks outside the grid
+
         return row, col
