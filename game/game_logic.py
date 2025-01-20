@@ -9,16 +9,45 @@ class TicTacToe2:
         self.current_player = 1  # 1 = player 1, 2 = player 2
 
     def turn(self):
+        while True:
+            # Display the current state of the board (optional)
+            self.print_board()
+            print(self.player_pieces)
+    
+            # Get input from the current player
+            piece_size = int(input(f"Player {self.current_player}, select a piece size: "))
+            x = int(input(f"Player {self.current_player}, select the row (0-2): "))
+            y = int(input(f"Player {self.current_player}, select the column (0-2): "))
+    
+            # Validate the move
+            if not self.is_valid_move(piece_size, x, y):
+                print("Invalid move! Try again.")
+                continue  # Skip to the next iteration
+    
+            # Make the move
+            self.make_move(self.current_player, piece_size, x, y)
+    
+            # Check for a winner
+            if self.check_winner():
+                self.print_board()
+                print(f"Player {self.current_player} wins!")
+                break
+    
+            # Check for a draw
+            if self.check_draw():
+                self.print_board()
+                print("It's a draw!")
+                break
+    
+            # Alternate the player
+            self.current_player = 1 if self.current_player == 2 else 2
+            
+    def get_current_player_pieces(self):
         """
-        Alternates turns and handles player moves.
-        - Gets player input for piece size and position.
-        - Validates the move using is_valid_move.
-        - If valid, calls make_move.
-        - Checks for a winner or draw after the move.
-        - Alternates the current player if no winner or draw.
+        Returns the pieces of the current player.
         """
-        pass
-
+        return self.player_pieces[self.current_player]
+            
     def is_valid_move(self, piece_size, x, y):
         """
         Validates whether the given move is valid.
