@@ -1,7 +1,9 @@
 class TicTacToe2:
     def __init__(self):
-        self.player1_pieces = [1, 1, 2, 2, 3, 3]
-        self.player2_pieces = [1, 1, 2, 2, 3, 3]
+        self.player_pieces = {
+            1: [1, 1, 2, 2, 3, 3],
+            2: [1, 1, 2, 2, 3, 3]
+            }
         self.board_pieces = [[0] * 3 for _ in range(3)]  # Piece sizes
         self.board_owners = [[0] * 3 for _ in range(3)]  # Player ownership
         self.current_player = 1  # 1 = player 1, 2 = player 2
@@ -17,14 +19,23 @@ class TicTacToe2:
         """
         pass
 
-    def is_valid_move(self, player, piece_size, x, y):
+    def is_valid_move(self, piece_size, x, y):
         """
-        Validates the player's move.
-        - Ensures the move is within board bounds.
-        - Checks that the piece size is larger than the current piece on the board.
-        - Verifies the player has the selected piece available.
+        Validates whether the given move is valid.
         """
-        pass
+        # Check if the coordinates are within bounds
+        if not (0 <= x < 3 and 0 <= y < 3):
+            return False
+
+        # Check if the piece_size is valid for the current player
+        if piece_size not in self.get_current_player_pieces():
+            return False
+
+        # Check if the piece is larger than the current piece at the board location
+        if piece_size <= self.board_pieces[x][y]:
+            return False
+
+        return True
 
     def make_move(self, player, piece_size, x, y):
         """
@@ -34,11 +45,6 @@ class TicTacToe2:
         - Checks for a winner using check_winner.
         - If no winner, calls check_draw to determine if the game is a draw.
 
-        # checks if move is valid
-        # if true -> update both boards and remove piece from players hand
-        # else -> check for draw
-        # if true -> give end of game message and reset board 
-        # else -> give invalid move message
         
         """
         pass
