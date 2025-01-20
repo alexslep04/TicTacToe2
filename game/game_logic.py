@@ -66,14 +66,11 @@ class TicTacToe2:
 
         return True
 
-    def make_move(self, player, piece_size, x, y):
+    def make_move(self, piece_size, x, y):
         """
         Executes a move.
         - Updates the board_pieces and board_owners arrays.
         - Calls deincrement_piece to remove the used piece from the player's hand.
-        - Checks for a winner using check_winner.
-        - If no winner, calls check_draw to determine if the game is a draw.
-
         
         """
         pass
