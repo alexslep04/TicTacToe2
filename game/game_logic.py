@@ -71,10 +71,11 @@ class TicTacToe2:
         Executes a move.
         - Updates the board_pieces and board_owners arrays.
         - Calls deincrement_piece to remove the used piece from the player's hand.
-        
         """
-        pass
-
+        self.board_pieces[x][y] = piece_size
+        self.board_owners[x][y] = self.current_player
+        self.deincrement_piece(self.current_player, piece_size)
+    
     def check_winner(self):
         """
         Checks if there is a winner.
