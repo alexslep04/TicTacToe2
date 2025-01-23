@@ -8,7 +8,7 @@ class TicTacToe2:
         self.board_owners = [[0] * 3 for _ in range(3)]  # Player ownership
         self.current_player = 1  # 1 = player 1, 2 = player 2
 
-    def turn(self):
+    def turn(self, piece_size, x, y):
         while True:
             # Display the current state of the board (optional)
             self.print_board()
@@ -76,13 +76,29 @@ class TicTacToe2:
         self.board_owners[x][y] = self.current_player
         self.deincrement_piece(self.current_player, piece_size)
     
-    def check_winner(self):
+    def check_winner(self, x, y):
         """
-        Checks if there is a winner.
-        - Evaluates rows, columns, and diagonals for three consecutive pieces owned by the same player.
-        - Returns True if a winner is found, False otherwise.
+        Checks if there is a winner after a move at (x, y).
+        - Evaluates the row, column, and diagonals intersecting (x, y).
+        - Returns True if the current_player has three in a row, False otherwise.
         """
-        pass
+        player = self.current_player
+
+        # Check row
+        if self.board_owners[x][0] == self.board_owners[x][1] == self.board_owners[x][2] == player:
+            return True
+
+        # Check column
+        if self.board_owners[0][y] == self.board_owners[1][y] == self.board_owners[2][y] == player:
+            return True
+
+        # Check diagonals (only if (x, y) is on a diagonal)
+        if x == y and self.board_owners[0][0] == self.board_owners[1][1] == self.board_owners[2][2] == player:
+            return True
+        if x + y == 2 and self.board_owners[0][2] == self.board_owners[1][1] == self.board_owners[2][0] == player:
+            return True
+
+        return False
 
     def check_draw(self):
         """
@@ -90,7 +106,8 @@ class TicTacToe2:
         - Returns True if method returns 0/null/none.
         - Returns False otherwise.
         """
-        pass
+        possible_moves = self.get_possible_moves()
+        return len(possible_moves) == 0
 
     def reset_board(self):
         """
@@ -100,12 +117,12 @@ class TicTacToe2:
         """
         self.__init__()
 
-    def deincrement_piece(self, player, piece_size):
+    def decrement_piece(self, piece_size):
         """
         Removes a used piece from the player's available pieces.
-        - Modifies player1_pieces or player2_pieces based on the player.
         """
-        pass
+        if piece_size in self.player_pieces[self.current_player]:
+            self.player_pieces[self.current_player].remove(piece_size)
 
     def get_possible_moves(self):
         """
@@ -131,10 +148,14 @@ class TicTacToe2:
 
         return possible_moves
 
-
     def print_board(self):
         """
         Prints the current state of the board for debugging.
         - Displays piece sizes and ownership in a readable format.
         """
-        pass
+        print("Board Pieces:")
+        for row in self.board_pieces:
+            print(row)
+        print("\nBoard Owners:")
+        for row in self.board_owners:
+            print(row)
