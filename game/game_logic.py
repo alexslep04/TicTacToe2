@@ -74,7 +74,7 @@ class TicTacToe2:
         """
         self.board_pieces[x][y] = piece_size
         self.board_owners[x][y] = self.current_player
-        self.deincrement_piece(self.current_player, piece_size)
+        self.decrement_piece(self.current_player, piece_size)
     
     def check_winner(self, x, y):
         """
