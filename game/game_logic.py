@@ -8,7 +8,7 @@ class TicTacToe2:
         self.board_owners = [[0] * 3 for _ in range(3)]  # Player ownership
         self.current_player = 1  # 1 = player 1, 2 = player 2
 
-    def turn(self, piece_size, x, y):
+    def turn(self):
         while True:
             # Display the current state of the board (optional)
             self.print_board()
