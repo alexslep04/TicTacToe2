@@ -25,10 +25,10 @@ class TicTacToe2:
                 continue  # Skip to the next iteration
     
             # Make the move
-            self.make_move(self.current_player, piece_size, x, y)
+            self.make_move(piece_size, x, y)
     
             # Check for a winner
-            if self.check_winner():
+            if self.check_winner(x, y):
                 self.print_board()
                 print(f"Player {self.current_player} wins!")
                 break
@@ -74,7 +74,7 @@ class TicTacToe2:
         """
         self.board_pieces[x][y] = piece_size
         self.board_owners[x][y] = self.current_player
-        self.decrement_piece(self.current_player, piece_size)
+        self.decrement_piece(piece_size)
     
     def check_winner(self, x, y):
         """
