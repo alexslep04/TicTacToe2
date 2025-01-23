@@ -107,13 +107,30 @@ class TicTacToe2:
         """
         pass
 
-    def get_possible_moves(self, player):
+    def get_possible_moves(self):
         """
-        Returns all valid moves for the given player.
+        Returns all valid moves for the current player.
         - Generates a list of tuples (piece_size, x, y) representing possible moves.
-        - This will be used for AI implementation later.
         """
-        pass
+        possible_moves = []
+        
+        # Get the pieces available to the current player
+        player_pieces = self.get_current_player_pieces()
+
+        # Traverse the board
+        for x in range(3):
+            for y in range(3):
+                # Get the piece currently on the board
+                current_board_piece = self.board_pieces[x][y]
+
+                # Check each unique piece size the player has
+                for piece_size in set(player_pieces):
+                    # If the player's piece is larger than the board piece, add it as a valid move
+                    if piece_size > current_board_piece:
+                        possible_moves.append((piece_size, x, y))
+
+        return possible_moves
+
 
     def print_board(self):
         """
