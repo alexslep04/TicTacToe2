@@ -15,7 +15,7 @@ class TicTacToe2:
             print(self.player_pieces)
     
             # Get input from the current player
-            piece_size = int(input(f"Player {self.current_player}, select a piece size: "))
+            piece_size = int(input(f"Player {self.current_player}, select a piece size (1-3): "))
             x = int(input(f"Player {self.current_player}, select the row (0-2): "))
             y = int(input(f"Player {self.current_player}, select the column (0-2): "))
     
