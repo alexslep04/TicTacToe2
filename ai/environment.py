@@ -1,5 +1,4 @@
 import numpy as np
-import random
 
 from game.game_logic import TicTacToe2  # Assuming this is your original class
 
