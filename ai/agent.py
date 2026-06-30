@@ -199,9 +199,15 @@ class DQNAgent(BaseAgent):
             # Mask illegal actions
             next_q[~next_masks] = -float("inf")
             max_next_q = next_q.max(dim=1)[0]
-            # Handle terminal states
+            # Handle terminal states — no future value after game ends
             max_next_q[dones] = 0.0
-            target_q = rewards + self.gamma * max_next_q
+            # Negamax Bellman update: after any move the next state is encoded
+            # from the OPPONENT's perspective (1=theirs, 2=ours).  Their high
+            # Q-value means they are in a good position, which is BAD for us.
+            # Negating converts the opponent's best value into our cost, giving
+            # the correct zero-sum adversarial backup:
+            #   Q(s,a) = r + γ · (−max_a′ Q(s′,a′))
+            target_q = rewards - self.gamma * max_next_q
         
         # Loss and optimization
         loss = nn.functional.mse_loss(current_q, target_q)
