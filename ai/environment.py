@@ -103,17 +103,23 @@ class TicTacToeEnv(TicTacToe2):  # Inherit all the game logic
         return self.get_state(), reward, done, info
 
     def get_state(self):
-        # board_owners / board_pieces are plain Python lists of lists in the
-        # game logic, so convert to NumPy arrays before flattening.
-        owners_flat = np.array(self.board_owners, dtype=np.int64).flatten()
-        pieces_flat = np.array(self.board_pieces, dtype=np.int64).flatten()
-        player_pieces = self.player_pieces[self.current_player]
-        opponent_pieces = self.player_pieces[3 - self.current_player]
-        player_pieces_padded = player_pieces + [0] * (6 - len(player_pieces))
+        # Normalise board_owners to current-player perspective so the same
+        # board position always has the same encoding regardless of which
+        # player is looking at it.  This is critical for self-play: without
+        # it, player 1 and player 2 see identical boards encoded differently,
+        # and the network cannot generalise across both sides.
+        #   0 = empty cell
+        #   1 = current player's piece
+        #   2 = opponent's piece
+        me = self.current_player
+        owners_flat = [
+            0 if cell == 0 else (1 if cell == me else 2)
+            for row in self.board_owners
+            for cell in row
+        ]
+        pieces_flat = np.array(self.board_pieces, dtype=np.int64).flatten().tolist()
+        player_pieces   = self.player_pieces[me]
+        opponent_pieces = self.player_pieces[3 - me]
+        player_pieces_padded   = player_pieces   + [0] * (6 - len(player_pieces))
         opponent_pieces_padded = opponent_pieces + [0] * (6 - len(opponent_pieces))
-        return (
-            owners_flat.tolist()
-            + pieces_flat.tolist()
-            + player_pieces_padded
-            + opponent_pieces_padded
-        )
+        return owners_flat + pieces_flat + player_pieces_padded + opponent_pieces_padded

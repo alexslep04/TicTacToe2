@@ -65,81 +65,95 @@ def run_episode(
     """
     Run a single episode.
 
+    Self-play (agent is opponent):
+        Every transition from BOTH sides of the board is stored, giving the
+        network twice the gradient signal per episode.  Both sides share the
+        same normalised state encoding (mine=1, theirs=2), so the Q-function
+        generalises across player roles.
+
+    Regular eval (agent vs a different opponent):
+        Only the agent's transitions are stored; metrics are from the agent's
+        perspective.
+
     Returns:
         (result, total_reward, episode_length) from the agent's perspective.
     """
-    state = env.reset()
+    is_self_play = agent is opponent
+
+    state      = env.reset()
     legal_mask = env.legal_action_mask()
 
-    total_reward    = 0.0
-    episode_length  = 0
+    total_reward     = 0.0
+    episode_length   = 0
     current_is_agent = agent_starts
 
-    # Remember agent's last (state, action) to assign a delayed loss reward
-    # when the opponent wins on the very next turn.
-    agent_last_state  = None
-    agent_last_action = None
+    # Track the last (state, action) separately for each side so terminal
+    # rewards can be assigned correctly to whichever move "caused" the outcome.
+    last_state:  dict[bool, Optional[list]] = {True: None, False: None}
+    last_action: dict[bool, Optional[int]]  = {True: None, False: None}
 
     while True:
         episode_length += 1
 
-        # ── Draw: no legal actions ───────────────────────────────────────────
+        # ── Draw: no legal moves for the player whose turn it is ─────────────
         if not legal_mask.any():
-            if train and agent_last_state is not None and isinstance(agent, DQNAgent):
-                agent.store_transition(
-                    agent_last_state, agent_last_action,
-                    DRAW_REWARD, state, True, legal_mask,
-                )
+            if train and isinstance(agent, DQNAgent):
+                for side in (True, False):
+                    if last_state[side] is not None:
+                        agent.store_transition(
+                            last_state[side], last_action[side],
+                            DRAW_REWARD, state, True, legal_mask,
+                        )
+            if current_is_agent:
                 total_reward += DRAW_REWARD
             return "draw", total_reward, episode_length
 
         # ── Select action ────────────────────────────────────────────────────
-        if current_is_agent:
-            action = agent.select_action(state, legal_mask)
-            agent_last_state  = state
-            agent_last_action = action
-        else:
-            action = opponent.select_action(state, legal_mask)
+        action = (agent if current_is_agent else opponent).select_action(state, legal_mask)
+        last_state[current_is_agent]  = state
+        last_action[current_is_agent] = action
 
         next_state, reward, done, info = env.step(action)
         next_legal_mask = info.get("legal_action_mask", env.legal_action_mask())
 
-        # ── Terminal transitions ─────────────────────────────────────────────
+        # ── Terminal ─────────────────────────────────────────────────────────
         if done:
-            if reward > 0:          # current player won
-                if current_is_agent:
-                    if train and isinstance(agent, DQNAgent):
+            if reward > 0:  # current mover won
+                if train and isinstance(agent, DQNAgent):
+                    # Winner's move gets WIN_REWARD
+                    agent.store_transition(
+                        state, action, WIN_REWARD, next_state, True, next_legal_mask,
+                    )
+                    # Loser's last move gets LOSS_REWARD
+                    loser = not current_is_agent
+                    if last_state[loser] is not None:
                         agent.store_transition(
-                            state, action,
-                            WIN_REWARD, next_state, True, next_legal_mask,
-                        )
-                        total_reward += WIN_REWARD
-                    return "win", total_reward, episode_length
-                else:               # opponent won → agent lost
-                    if train and agent_last_state is not None and isinstance(agent, DQNAgent):
-                        agent.store_transition(
-                            agent_last_state, agent_last_action,
+                            last_state[loser], last_action[loser],
                             LOSS_REWARD, next_state, True, next_legal_mask,
                         )
-                        total_reward += LOSS_REWARD
+                if current_is_agent:
+                    total_reward += WIN_REWARD
+                    return "win", total_reward, episode_length
+                else:
+                    total_reward += LOSS_REWARD
                     return "loss", total_reward, episode_length
-            else:                   # draw via environment
+
+            else:  # draw triggered by env (opponent had no moves after this step)
                 if train and isinstance(agent, DQNAgent):
-                    if current_is_agent:
-                        agent.store_transition(
-                            state, action,
-                            DRAW_REWARD, next_state, True, next_legal_mask,
-                        )
-                    elif agent_last_state is not None:
-                        agent.store_transition(
-                            agent_last_state, agent_last_action,
-                            DRAW_REWARD, next_state, True, next_legal_mask,
-                        )
+                    for side in (True, False):
+                        if last_state[side] is not None:
+                            agent.store_transition(
+                                last_state[side], last_action[side],
+                                DRAW_REWARD, next_state, True, next_legal_mask,
+                            )
+                if current_is_agent:
                     total_reward += DRAW_REWARD
                 return "draw", total_reward, episode_length
 
-        # ── Non-terminal agent move: 0 immediate reward ──────────────────────
-        if train and current_is_agent and isinstance(agent, DQNAgent):
+        # ── Non-terminal: store 0 immediate reward ───────────────────────────
+        # In self-play both sides are the same network — store every move.
+        # In eval mode only store the agent's moves.
+        if train and isinstance(agent, DQNAgent) and (current_is_agent or is_self_play):
             agent.store_transition(state, action, 0.0, next_state, False, next_legal_mask)
 
         state = next_state
@@ -425,7 +439,8 @@ def main():
 
     # train
     p = sub.add_parser("train", help="Train a DQN agent via self-play")
-    p.add_argument("--episodes", type=int, default=10000)
+    p.add_argument("--episodes", type=int, default=None,
+                   help="Training episodes (default: Config.num_episodes = 100 000)")
     p.add_argument("--seed",     type=int, default=42)
     p.add_argument("--out",      type=str, default="models",
                    help="Output directory (default: models/)")
@@ -448,7 +463,11 @@ def main():
     args = parser.parse_args()
 
     if args.mode == "train":
-        config = Config(num_episodes=args.episodes, seed=args.seed, models_dir=args.out)
+        # If --episodes is not supplied, fall through to Config's default (100 000).
+        config_kwargs: dict = {"seed": args.seed, "models_dir": args.out}
+        if args.episodes is not None:
+            config_kwargs["num_episodes"] = args.episodes
+        config = Config(**config_kwargs)
         agent  = train_agent(config)
         evaluate_against_all(agent, num_games=100)
 
