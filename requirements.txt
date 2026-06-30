@@ -1,3 +1,10 @@
-pygame
+# PyTorch CUDA 12.8 build — required for GPU training on RTX 20xx/30xx/40xx.
+# Tested with Python 3.14 + driver 591.86 (RTX 2080 Ti).
+# Install:  pip install -r requirements.txt
+--index-url https://download.pytorch.org/whl/cu128
+--extra-index-url https://pypi.org/simple/
+
+torch==2.11.0+cu128
+pygame-ce
 numpy
-torch
+matplotlib

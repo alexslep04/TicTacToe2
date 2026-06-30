@@ -43,24 +43,63 @@ class TicTacToeEnv(TicTacToe2):  # Inherit all the game logic
         return mask
 
     # --- Environment step ---------------------------------------------------
-    def step(self, action):
+    def step(self, action, zero_sum: bool = False):
         """
-        Apply a flat action index. Because callers are expected to mask
-        illegal actions before choosing, an illegal action here is treated as
-        a hard error signal (terminal with a large penalty).
+        Apply a flat action index. Agents are expected to only select legal actions
+        using the legal_action_mask, so illegal moves should never occur.
+        
+        Args:
+            action: The flat action index to execute (must be legal).
+            zero_sum: If True, returns (reward_for_mover, reward_for_opponent) tuple
+                      in info dict to support zero-sum reward signals.
+        
+        Returns:
+            (state, reward, done, info) tuple.
+            
+        Reward structure:
+            +3   for winning
+            -1   for losing  (assigned by run.py to the prior agent transition)
+            -1   for draw    (same penalty as losing — strongly incentivises winning)
+             0   for ongoing game
         """
         piece_size, x, y = self.action_to_move(action)
 
-        if not self.is_valid_move(piece_size, x, y):
-            return self.get_state(), -10, True, {"illegal": True}
+        # Assert move is valid - agents should only pick legal moves
+        assert self.is_valid_move(piece_size, x, y), \
+            f"Illegal move attempted: piece={piece_size}, x={x}, y={y}. Use legal_action_mask!"
 
         self.make_move(piece_size, x, y)
-        reward, done = (1, True) if self.check_winner(x, y) else (0, self.check_draw())
+        
+        won = self.check_winner(x, y)
+        draw = self.check_draw() if not won else False
+        done = won or draw
+        
+        # Reward from current mover's perspective
+        if won:
+            reward = 3.0
+        elif draw:
+            reward = -1.0
+        else:
+            reward = 0.0
+        
+        info = {}
+        
+        # Zero-sum rewards: provide explicit loss signal for opponent
+        if zero_sum:
+            if won:
+                info["reward_mover"] = 3.0
+                info["reward_opponent"] = -1.0
+            elif draw:
+                info["reward_mover"] = -1.0
+                info["reward_opponent"] = -1.0
+            else:
+                info["reward_mover"] = 0.0
+                info["reward_opponent"] = 0.0
 
         if not done:
             self.current_player = 3 - self.current_player  # Switch player
 
-        info = {"illegal": False, "legal_action_mask": self.legal_action_mask()}
+        info["legal_action_mask"] = self.legal_action_mask()
         return self.get_state(), reward, done, info
 
     def get_state(self):
