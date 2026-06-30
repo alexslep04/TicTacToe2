@@ -41,7 +41,30 @@ Known bugs, resolved issues, and remaining work for TicTacToe2.
   `save_model`, `load_model`, `set_seed`, `plot_training_curves`.
 - [x] **Graphical UI (`game_ui.py`) implemented.** Pygame board renderer with
   piece-size panels, click-to-place, valid-move highlighting, and win/draw overlay.
-- [x] **Reward values updated.** Win = **+2**, Draw = **−0.5**, Loss = **−2**.
+- [x] **Reward values updated.** Win = **+3**, Draw = **−1** (same as loss),
+  Loss = **−1**.  Draw carries the same penalty as losing so the agent is always
+  incentivised to play for a win.
+- [x] **State encoding normalised (self-play symmetry fix).** `get_state()`
+  previously encoded `board_owners` with absolute player IDs (1 or 2).  Player 1
+  and player 2 saw identical board positions encoded differently, preventing the
+  Q-network from generalising across both roles.  Fixed to current-player
+  perspective: `1 = my piece`, `2 = opponent's piece`, `0 = empty`.
+- [x] **Self-play transitions doubled.** `run_episode()` previously only stored
+  buffer transitions for the "agent" side, discarding every opponent-side move and
+  halving the learning signal per episode.  Both sides now track their last
+  `(state, action)` and store transitions; terminal rewards (WIN / LOSS / DRAW)
+  are assigned correctly to both the mover and the loser.
+- [x] **CLI `--episodes` default fixed.** The argument parser had `default=10000`
+  which silently overrode `Config.num_episodes = 100 000`.  Changed to
+  `default=None` so `python -m ai.run train` runs the full 100 000 episodes.
+- [x] **Negamax Bellman update (critical self-play bug).** With the normalised state
+  encoding, after any move the next state is from the *opponent's* perspective.
+  The original update `Q(s,a) = r + γ·max Q(s′,a′)` treated the opponent's
+  best value as a *benefit*, training the agent to actively help the opponent.
+  This caused >74 % losses against a purely random player after 100 k episodes.
+  Fixed to the correct zero-sum adversarial (negamax) update:
+  `Q(s,a) = r − γ·max Q(s′,a′)`.
+  **All models trained before commit `1d04814` must be discarded and retrained.**
 
 ## Open — remaining work
 

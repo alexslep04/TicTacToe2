@@ -114,9 +114,12 @@ python -m ai.run versus models/model.pt runs/experiment1/model.pt --games 200
 - **`legal_action_mask()`** — boolean array of shape `(27,)` marking every
   currently legal action. Agents always select from this mask, so illegal moves
   are structurally impossible.
-- **`get_state()`** — 30-element feature vector:
-  9 cell-owner values + 9 cell-piece sizes + 6 current-player piece counts
-  (zero-padded) + 6 opponent piece counts (zero-padded).
+- **`get_state()`** — 30-element feature vector with **normalised ownership**:
+  `1 = my piece`, `2 = opponent's piece`, `0 = empty` (current-player perspective)
+  + 9 cell-piece sizes + 6 current-player piece counts (zero-padded) + 6 opponent
+  piece counts (zero-padded). The normalisation ensures the Q-network sees the
+  same encoding regardless of which player is acting, which is essential for
+  self-play generalisation.
 
 Action space: `piece_size ∈ {1,2,3}  ×  row ∈ {0,1,2}  ×  col ∈ {0,1,2}` → 27 discrete actions.
 
@@ -124,29 +127,36 @@ Action space: `piece_size ∈ {1,2,3}  ×  row ∈ {0,1,2}  ×  col ∈ {0,1,2}`
 
 | Outcome | Reward |
 |---|---|
-| Win | **+2** |
-| Loss | **−2** (assigned retroactively to the agent's last move) |
-| Draw | **−0.5** (penalises both sides — winning is always preferred) |
+| Win | **+3** |
+| Loss | **−1** (assigned retroactively to the loser's last move) |
+| Draw | **−1** (same penalty as losing — winning is always the goal) |
 | Ongoing move | **0** |
-
-The −2 loss signal is applied in `run.py` to the **agent's previous transition**,
-not the opponent's winning move, so the network correctly associates its own
-choices with the eventual loss.
 
 ### Self-Play Training
 
-The agent plays **against itself** — both sides share the same network and the
-same ε-greedy policy, alternating who moves first each episode. After each episode:
+The agent plays **against itself** — both sides share the same network and ε-greedy
+policy, alternating who moves first each episode. Both sides' transitions are stored
+in the replay buffer, doubling the learning signal per episode. After each episode:
 
-- 4 gradient updates are applied (mini-batch size 64).
-- The target network is synced every 50 episodes.
-- ε decays multiplicatively from 1.0 → 0.05.
+- 4 gradient updates are applied (mini-batch size **128**).
+- The target network is synced every **500** episodes.
+- ε decays multiplicatively from **1.0 → 0.2** over 100 000 episodes (80/20 exploit/explore at end).
 
-Evaluation against an external opponent is **not** run during training — it
-adds wall-clock time without improving the gradient signal. The self-play
-win/loss/draw rates printed every 100 episodes are sufficient to monitor
-progress. A final objective benchmark against random and Minimax opponents
-runs once training is complete.
+**Negamax Bellman update** — with the current-player-normalised state encoding, the
+next state after any move is from the *opponent's* perspective. The Q-learning target
+therefore negates the future value:
+
+```
+Q(s, a) = r − γ · max_a′ Q(s′, a′)
+```
+
+This gives the correct zero-sum adversarial backup: the opponent being in a strong
+position (high Q) is bad for us, not good.
+
+Evaluation against an external opponent is **not** run during training. The self-play
+win/loss/draw rates printed every 1 000 episodes are sufficient to monitor progress.
+A final objective benchmark against random and Minimax opponents runs once training
+completes.
 
 ### Agents (`ai/agent.py`)
 
